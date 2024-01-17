@@ -16,7 +16,7 @@ jobs:
       - name: Set up Unreal Engine
         uses: anuejn/action-setup-unreal@v1
         with:
-          ueVersion: '4.27.0'
+          ueVersion: '5.11.0'
 
       - name: Build Game
         run: |
