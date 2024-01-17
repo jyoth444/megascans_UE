@@ -8,6 +8,10 @@ on:
       - files_git
       - azure-pipeline
 
+env:
+  EPIC_GAMES_USERNAME: ${{ secrets.EPIC_GAMES_USERNAME }}
+  EPIC_GAMES_PASSWORD: ${{ secrets.EPIC_GAMES_PASSWORD }}
+
 jobs:
   build:
     runs-on: windows-latest
@@ -16,21 +20,20 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Set up Unreal Engine
+      - name: Install Epic Games Launcher
         run: |
-          # Download Unreal Engine 5.11 installer
-          Invoke-WebRequest -Uri "https://unrealengine.com/release/5.11.0/installer/UnrealEngineInstaller.exe" -OutFile "UnrealEngineInstaller.exe"
+          Invoke-WebRequest -Uri "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncherInstaller.msi?productName=unrealEngine" -OutFile "EpicGamesLauncherInstaller.msi"
+          Start-Process -Wait -FilePath msiexec -ArgumentList '/i', 'EpicGamesLauncherInstaller.msi', '/quiet', '/qn', '/norestart'
 
-          # Install Unreal Engine silently
-          Start-Process -Wait -FilePath .\UnrealEngineInstaller.exe -ArgumentList '-y'
+      - name: Sign In to Epic Games Account
+        run: |
+          .\Path\To\EpicGamesLauncher.exe login -username $env:EPIC_GAMES_USERNAME -password $env:EPIC_GAMES_PASSWORD
 
-          # Print version for verification
-          .\Engine\Build\BatchFiles\RunUAT.bat version
+      - name: Install Unreal Engine
+        run: |
+          Start-Process -Wait -FilePath "C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe" -ArgumentList '-run=UnrealEngine'
 
       - name: Build Unreal Engine Project
         run: |
-          # Navigate to the project directory
           cd .\megascans_UE
-
-          # Run a basic build command (adjust as needed)
           .\Engine\Build\BatchFiles\RunUAT.bat BuildCookRun -project=Project1.uproject -platform=Win64 -clientconfig=Development -serverconfig=Development -cook -allmaps -build -stage -pak -archive
