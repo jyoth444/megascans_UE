@@ -1,0 +1,3 @@
+*.yml eol=lf
+*.uasset binary
+*.umap binary
