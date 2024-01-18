@@ -32,7 +32,7 @@ jobs:
 
       - name: Find Launcher Executable
         run: |
-          Get-ChildItem -Path 'C:\' -Recurse -Filter 'EpicGamesLauncher.exe'
+          Get-ChildItem -Path 'C:\' -Recurse -Filter 'EpicGamesLauncher.exe' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notlike '*Windows Defender*' }
 
       - name: Sign In to Epic Games Account
         run: |
