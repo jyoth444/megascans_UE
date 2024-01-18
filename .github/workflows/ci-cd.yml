@@ -31,18 +31,34 @@ jobs:
           Write-Output "List contents: $(Get-ChildItem)"
 
       - name: Find Launcher Executable
+        id: find_launcher
         run: |
           $launcherPath = Get-ChildItem -Path 'C:\Program Files (x86)' -Recurse -Filter 'EpicGamesLauncher.exe' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notlike '*Windows Defender*' } | Select-Object -ExpandProperty FullName
           if ($launcherPath -eq $null) {
             Write-Error "Epic Games Launcher not found."
           } else {
-            $launcherDir = [System.IO.Path]::GetDirectoryName($launcherPath)
-            Set-Location $launcherDir
-            try {
-              Start-Process -Wait -FilePath $launcherPath -ArgumentList "login", "-username", "$env:EPIC_GAMES_USERNAME", "-password", "$env:EPIC_GAMES_PASSWORD" -Verb RunAs
-            } catch {
-              Write-Error "Failed to run Epic Games Launcher as administrator."
-            }
+            echo "::set-output name=launcherPath::$launcherPath"
+          }
+
+      - name: Set Launcher Path
+        id: set_launcher_path
+        run: |
+          $launcherPath = ${{ steps.find_launcher.outputs.launcherPath }}
+          if (-not $launcherPath) {
+            Write-Error "Epic Games Launcher not found. Exiting..."
+            exit 1
+          }
+          $launcherDir = [System.IO.Path]::GetDirectoryName($launcherPath)
+          Set-Location $launcherDir
+          Write-Output "Launcher Path Set: $launcherPath"
+
+      - name: Sign In to Epic Games Account
+        run: |
+          $launcherPath = ${{ steps.set_launcher_path.outputs.launcherPath }}
+          try {
+            Start-Process -Wait -FilePath ".\$($launcherPath -replace '.*\\')" -ArgumentList "login", "-username", "$env:EPIC_GAMES_USERNAME", "-password", "$env:EPIC_GAMES_PASSWORD" -Verb RunAs
+          } catch {
+            Write-Error "Failed to run Epic Games Launcher as administrator."
           }
 
       - name: Install Unreal Engine
