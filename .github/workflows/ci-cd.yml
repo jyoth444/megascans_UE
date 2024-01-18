@@ -22,19 +22,32 @@ jobs:
 
       - name: Install Epic Games Launcher
         run: |
-          $launcherPath = "C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe"
           Invoke-WebRequest -Uri "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncherInstaller.msi?productName=unrealEngine" -OutFile "EpicGamesLauncherInstaller.msi"
-          Start-Process -Wait -FilePath msiexec -ArgumentList '/i', 'EpicGamesLauncherInstaller.msi', '/quiet', '/qn', '/norestart'
-          if (Test-Path $launcherPath) {
-              Start-Process -Wait -FilePath $launcherPath -ArgumentList '-run=UnrealEngine', '-Login', '-username', $env:EPIC_GAMES_USERNAME, '-password', $env:EPIC_GAMES_PASSWORD -Verb RunAs
-          } else {
-              Write-Error "Epic Games Launcher not found at $launcherPath"
-          }
+          Start-Process -Wait -FilePath msiexec -ArgumentList '/i', 'EpicGamesLauncherInstaller.msi', '/quiet', '/qn', '/norestart' -Verb RunAs
 
-      - name: Debug
+      - name: Debug Environment
         run: |
           Write-Output "Current directory: $PWD"
           Write-Output "List contents: $(Get-ChildItem)"
+
+      - name: Find Launcher Executable
+        run: |
+          Get-ChildItem -Path 'C:\' -Recurse -Filter 'EpicGamesLauncher.exe'
+
+      - name: Sign In to Epic Games Account
+        run: |
+          $launcherPath = 'C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe'
+          $launcherDir = [System.IO.Path]::GetDirectoryName($launcherPath)
+          Set-Location $launcherDir
+          try {
+            Start-Process -Wait -FilePath $launcherPath -ArgumentList "login", "-username", "$env:EPIC_GAMES_USERNAME", "-password", "$env:EPIC_GAMES_PASSWORD" -Verb RunAs
+          } catch {
+            Write-Error "Failed to run Epic Games Launcher as administrator."
+          }
+
+      - name: Install Unreal Engine
+        run: |
+          Start-Process -Wait -FilePath "C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe" -ArgumentList '-run=UnrealEngine'
 
       - name: Build Unreal Engine Project
         run: |
